@@ -43,6 +43,11 @@ def update_passwords():
     with open(PASSWORD_FILE, "w") as f:
         f.write(new_password)
 
+class Versuche(object):
+    def __str__(self):
+        return "{} Versuche verbleiben.".format(AUTHENTICATIONS_LEFT)
+
+
 def authenticate(function):
     """Function wrapper for basic authenticaion"""
     def check(user, password):
@@ -50,12 +55,12 @@ def authenticate(function):
         if AUTHENTICATIONS_LEFT <= 0:
             return False
         authenticated = password in PASSWORDS
+        print(user, password)
         if not authenticated:
             AUTHENTICATIONS_LEFT -= 1
         return authenticated
     return auth_basic(check, realm=AUTH_REALM,
-                      text="{} Versuche verbleiben.".format(AUTHENTICATIONS_LEFT)) \
-                     (function)
+                      text=Versuche())(function)
 
 
 # ------------------- Routes -------------------

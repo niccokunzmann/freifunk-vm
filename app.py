@@ -76,7 +76,7 @@ def get_restart_wifi():
 def interfaces(command="link"):
     links = subprocess.check_output(["ip", "-o", command])
     links = links.decode()
-    return re.findall("^\\d+:\\s+(\\S+)(?::|\\s)", links, re.MULTILINE)
+    return re.findall("^\\d+:\\s+(\\S+?)(?::|\\s)", links, re.MULTILINE)
 
 def restart_wifi():
     global CURRENTLY_RUNNING_WIFI
@@ -209,7 +209,7 @@ def get_license():
 def main():
     update_passwords()
     restart_vpn()
-    threading.Timer(3, restart_wifi)
+    threading.Timer(3, restart_wifi).start()
     print("{} {}".format(AUTH_REALM, " ".join(PASSWORDS)))
     run(host='', port=80, debug=True)
 

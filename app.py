@@ -56,7 +56,6 @@ def authenticate(function):
         if AUTHENTICATIONS_LEFT <= 0:
             return False
         authenticated = password in PASSWORDS
-        print(user, password)
         if not authenticated:
             AUTHENTICATIONS_LEFT -= 1
         return authenticated
@@ -174,7 +173,7 @@ def get_vpn_status():
 def update_from_github():
     response.content_type = "text/plain"
     return subprocess.check_output(["git", "pull", HTTPS_SOURCE]) + \
-           "\r\nBitte die VM neustarten."
+           b"\r\nBitte die VM neustarten."
 
 #                     Static
 STATIC_FILES = os.path.join(HERE, "static")

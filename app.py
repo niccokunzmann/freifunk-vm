@@ -13,6 +13,7 @@ APPLICATION = "freifunk-vm"
 HERE = os.path.dirname(__file__) or os.getcwd()
 CONFIGURATION_FILES = os.path.join(os.environ.get("HOME", "~"), ".config", APPLICATION)
 HTTPS_SOURCE = "https://github.com/niccokunzmann/freifunk-vm.git"
+WIFI_NAME = "tinyurl.com/freifunk-vm"
 
 os.makedirs(CONFIGURATION_FILES, exist_ok=True)
 # ------------------- Passwords -------------------
@@ -70,7 +71,7 @@ def authenticate(function):
 CURRENTLY_RUNNING_WIFI = None
 
 @get("/restart-wifi")
-#@authenticate
+@authenticate
 def get_restart_wifi():
     try:
         restart_wifi()
@@ -89,7 +90,7 @@ def restart_wifi():
     if CURRENTLY_RUNNING_WIFI:
         CURRENTLY_RUNNING_WIFI.terminate()
         CURRENTLY_RUNNING_WIFI.wait(1)
-    wifi_name = "Freifunk" # TODO: allow to change wifi name
+    wifi_name = WIFI_NAME
     ifaces = interfaces()
     print("ifaces: {}".format(ifaces))
     tunnel = [i for i in ifaces if i.startswith("tun")]
@@ -98,7 +99,6 @@ def restart_wifi():
     tunnel = tunnel[0]
     wifi = [i for i in ifaces if i.startswith("w")]
     if not wifi:
-        # TODO: redirect to tutorial
         raise ValueError("Keinen WLAN-Adapter gefunden. Bitte schalte ihn ein!")
     wifi = wifi[0]
     print("wifi: {} tunnel: {}".format(wifi, tunnel))

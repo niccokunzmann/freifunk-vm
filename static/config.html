@@ -2,6 +2,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Freifunk VM - Konfiguration</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
   </head>
   <body>
     <h1>Freifunk VM - Konfiguration</h1>
@@ -12,10 +13,21 @@
         <a href="http://ca.berlin.freifunk.net/">Ein Zertifikat beantragen</a>
       </li>
       <li>
-        <form action="/renew-certificate">
-          Ddie beantragte Datei hochladen: <input type="file" name="freifunk.tgz" /><input type="submit" value="Hochladen" /> <br/>
-          Diese sollte eine so &uuml;hnlich hei&szlig;en: "freifunk_?.tgz".
+        <form action="/update-vpn", method="post" enctype="multipart/form-data">
+          <!-- http://stackoverflow.com/a/14296741/1320237 -->
+          Die beantragte Datei hochladen:
+          <input type="file" name="freifunk_configuration" />
+          <input type="submit" value="Hochladen" /> <br/>
+          Diese sollte so &uuml;hnlich hei&szlig;en: "freifunk_?.tgz".
         </form>
+      </li>
+      <li>
+        Den VPN-Status ansehen:
+        <a href="config.html"><img class="vpn-status" src="/vpn-status"></a>
+      </li>
+      <li><a href="/restart-vpn">Die VPN-Verbindung neustarten</a></li>
+      <li>
+        <a href="/update-sourcecode">Den neuen Source-code von Github laden.</a>
       </li>
     </ul>
   </body>

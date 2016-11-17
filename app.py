@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 from bottle import post, get, run, request, static_file, redirect, route, auth_basic, \
-                   response
+                   response, abort
 import os
 import sys
 import shutil
 import base64
 import subprocess
+import re
+import threading
 
 APPLICATION = "freifunk-vm"
 HERE = os.path.dirname(__file__) or os.getcwd()
@@ -58,6 +60,53 @@ def authenticate(function):
 
 # ------------------- Routes -------------------
 
+#                     WIFI
+
+CURRENTLY_RUNNING_WIFI = None
+
+@get("/restart-wifi")
+#@authenticate
+def get_restart_wifi():
+    try:
+        restart_wifi()
+    except ValueError as e:
+        abort(500, e)
+    redirect(CONFIG)
+
+def interfaces(command="link"):
+    links = subprocess.check_output(["ip", "-o", command])
+    links = links.decode()
+    return re.findall("^\\d+:\\s+(\\S+)(?::|\\s)", links, re.MULTILINE)
+
+def restart_wifi():
+    global CURRENTLY_RUNNING_WIFI
+    subprocess.call(["killall", "create_ap"])
+    if CURRENTLY_RUNNING_WIFI:
+        CURRENTLY_RUNNING_WIFI.terminate()
+        CURRENTLY_RUNNING_WIFI.wait(1)
+    wifi_name = "Freifunk" # TODO: allow to change wifi name
+    ifaces = interfaces()
+    print("ifaces: {}".format(ifaces))
+    tunnel = [i for i in ifaces if i.startswith("tun")]
+    if not tunnel:
+        raise ValueError("No VPN tunnel found.")
+    tunnel = tunnel[0]
+    wifi = [i for i in ifaces if i.startswith("w")]
+    if not wifi:
+        # TODO: redirect to tutorial
+        raise ValueError("Keinen WLAN-Adapter gefunden. Bitte schalte ihn ein!")
+    wifi = wifi[0]
+    print("wifi: {} tunnel: {}".format(wifi, tunnel))
+    CURRENTLY_RUNNING_VPN = subprocess.Popen(["create_ap", wifi, tunnel, wifi_name],
+                                             cwd=VPN_CONFIGURATION_FILES)
+
+@get("/wifi-status")
+def get_wifi_status():
+    if any(i.startswith("w") for i in interfaces("addr")):
+        redirect("/static/vpn-ok.png", 307)
+    redirect("/static/vpn-down.png", 307)
+
+
 #                     VPN
 
 VPN_CONFIGURATION_FILE = os.path.join(CONFIGURATION_FILES, "freifunk-vpn.tgz")
@@ -107,22 +156,20 @@ def restart_vpn():
     configuration = configuration[0]
     CURRENTLY_RUNNING_VPN = subprocess.Popen(["openvpn", configuration],
                                              cwd=VPN_CONFIGURATION_FILES)
-    
 
 @get("/vpn-status")
 def get_vpn_status():
     if CURRENTLY_RUNNING_VPN and CURRENTLY_RUNNING_VPN.returncode is None:
         redirect("/static/vpn-ok.png", 307)
-    print(CURRENTLY_RUNNING_VPN and CURRENTLY_RUNNING_VPN.returncode)
     redirect("/static/vpn-down.png", 307)
 
 #                     update
-
-@get("/vpn-status")
+@get("/update-sourcecode")
 @authenticate
 def update_from_github():
     response.content_type = "text/plain"
-    return subprocess.check_output(["git", "pull", HTTPS_SOURCE])
+    return subprocess.check_output(["git", "pull", HTTPS_SOURCE]) + \
+           "\r\nBitte die VM neustarten."
 
 #                     Static
 STATIC_FILES = os.path.join(HERE, "static")
@@ -139,7 +186,6 @@ def static(filename):
 
 #                     AGPL
 ZIP_PATH = "/" + APPLICATION + ".zip"
-
 
 @get('/source')
 def get_source_redirect():
@@ -163,6 +209,7 @@ def get_license():
 def main():
     update_passwords()
     restart_vpn()
+    threading.Timer(3, restart_wifi)
     print("{} {}".format(AUTH_REALM, " ".join(PASSWORDS)))
     run(host='', port=80, debug=True)
 
